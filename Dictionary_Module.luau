@@ -146,7 +146,7 @@ function dict.processParallel(tbl, fnString, operation, n)
 	local shared_results = SharedTable.new()
 	local completed = 0
 
-	for i, slice in ipairs(slices) do
+	for i, slice in slices do
 		local chunk = UndoSlice(slice)
 
 		local actor = Instance.new("Actor")
