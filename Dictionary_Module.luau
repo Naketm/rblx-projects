@@ -44,6 +44,7 @@ end
 -- IT WILL ONLY CLEAN UP WHAT YOU TELL IT TO CLEAN UP!! setting it to [K] will apply weak to only the keys.
 
 -- You are able to get onChanged signals to detect when the Dictionary has been changed, 
+-- REMEMBER TO USE RAWSET TO AVOID INFINITE LOOPS OR IF YOU DON'T WANT IT TO BE DETECTED!!!
 -- It will return the key and the value being changed!
 
 -- current functions..
@@ -51,7 +52,7 @@ end
 --[[
 i have binding, find, merge, clear, clone, concat_key, concat_value, create, 
 maxn, insert, min, move, reconcile, remove, freeze, unfreeze, len, filter, 
-map, map_key, filter_key, isWeak, weak, reverse, difference, slice
+map, map_key, filter_key, isWeak, weak, reverse, difference, slice, rawset
 ]]
 
 --[[
