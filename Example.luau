@@ -1,5 +1,7 @@
 -- Example Script
 
+-- https://medal.tv/games/roblox-studio/clips/l0DbJl7JZ0GpTt6Wn?invite=cr-MSxyckMsNDQwNDM2NTY5&v=12
+
 local Dictionary = require(script.Dictionary)
 
 local Data_Template = 
