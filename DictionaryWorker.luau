@@ -11,11 +11,11 @@ actor:BindToMessageParallel("Work", function(chunk, fnSource, SliceIndex, Shared
 
 	local output = {}
 	if op == "map" then
-		for k, v in pairs(chunk) do
+		for k, v in chunk do
 			output[k] = f(k, v)
 		end
 	else
-		for k, v in pairs(chunk) do
+		for k, v in chunk do
 			if f(k, v) then
 				output[k] = v
 			end
