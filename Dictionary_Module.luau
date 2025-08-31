@@ -46,6 +46,14 @@ end
 -- You are able to get onChanged signals to detect when the Dictionary has been changed, 
 -- It will return the key and the value being changed!
 
+-- current functions..
+
+--[[
+i have binding, find, merge, clear, clone, concat_key, concat_value, create, 
+maxn, insert, min, move, reconcile, remove, freeze, unfreeze, len, filter, 
+map, map_key, filter_key, isWeak, weak, reverse, difference, slice
+]]
+
 --[[
 EXAMPLE CODE
 
