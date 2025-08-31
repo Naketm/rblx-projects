@@ -171,6 +171,14 @@ function dict.move(src: Dictionary<K, V>, keys: table, dst: Dictionary<K, V>): D
     end
 end
 
+function dict.reconcile(src: Dictionary<K, V>, defaults: Dictionary<K, V>): Dictionary<K, V>
+    for k, v in pairs(defaults) do
+        if src[k] == nil then
+            t[k] = v
+        end
+    end
+end
+
 function dict.remove(tbl: Dictionary<K, V>, key: string)
     tbl[key] = nil
 end
