@@ -1,6 +1,10 @@
-local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local dict = {}
 local hash: string = "27%Ry*330!__@)*($*8152"
+
+-- TYPES
+type Dictionary<K, V> = {[K]: V}
+type Func<K, V, R> = (K, V) -> R
+type FilterFunc<K, V> = (K, V) -> boolean
 
 -- CLASSES
 local signal = {}
@@ -28,11 +32,6 @@ function signal:Fire(...)
         fn(...)
     end
 end
-
--- TYPES
-type Dictionary<K, V> = {[K]: V}
-type MapFunc<K, V, R> = (K, V) -> R
-type FilterFunc<K, V> = (K, V) -> boolean
 
 -- DOCUMENTATION
 -- MADE BY [NAKETM] on discord or [jax0518] on roblox!!
@@ -297,7 +296,7 @@ function dict.filter<K, V>(tbl: Dictionary<K, V>, fn: FilterFunc<K, V> ): Dictio
     return result
 end
 
-function dict.map<K, V, R>(tbl: Dictionary<K, V>, fn: MapFunc<K, V, R>): Dictionary<K, R>
+function dict.map<K, V, R>(tbl: Dictionary<K, V>, fn: Func<K, V, R>): Dictionary<K, R>
     local result = {} :: Dictionary<K, V>
     for k, v in pairs(tbl) do
         result[k] = fn(k, v)
@@ -305,7 +304,7 @@ function dict.map<K, V, R>(tbl: Dictionary<K, V>, fn: MapFunc<K, V, R>): Diction
     return result
 end
 
-function dict.mapKeys(tbl: Dictionary<K, V>, fn: MapFunc<K, V, R>): Dictionary<K, R>
+function dict.mapKeys(tbl: Dictionary<K, V>, fn: Func<K, V, R>): Dictionary<K, R>
     local result = {} :: Dictionary<K, V>
     for k,v in pairs(tbl) do
         result[fn(k)] = v
@@ -337,6 +336,37 @@ function dict.reverse(tbl: Dictionary<K, V>): Dictionary<K, V>
         
         tbl[p_v] = p_i
     end
+end
+
+function dict.difference(tbl: Dictionary<K, V>, tbl2: Dictionary<K, V>): Dictionary<K, V>
+    local result = {} :: Dictionary<K,V>
+
+    for i,v in tbl do
+        if table.find(tbl2, v) then
+            continue
+        else
+            result[i] = v
+        end
+    end
+
+    return result
+end
+
+function dict.slice(tbl: Dictionary<K, V>, n: number): {{any}}
+    assert(n >= 1, "N must be over 1")
+    local slices = table.create(n)
+
+    local i = 1
+    for k, v in tbl do
+        local chunk = slices[i]
+        chunk[#chunk+1] = {k, v}
+        
+        i += 1
+        if i > n then 
+            i = 1 
+        end
+    end
+    return slices
 end
 
 return dict
