@@ -142,13 +142,13 @@ function dict.find(tbl: Dictionary<K, V>, v:any, key_check: string): string
 end
 
 function dict.merge(merge_table_1: Dictionary<K, V>, merge_table_2: Dictionary<K, V>): Dictionary<K, V>
-	for i, v in pairs(merge_table_2) do
+	for i, v in merge_table_2 do
 		merge_table_1[i]  = v
 	end
 end
 
 function dict.clear(tbl: Dictionary<K, V>): ()
-	for i,v in pairs(tbl) do
+	for i,v in tbl do
 		v = nil
 	end
 end
@@ -156,7 +156,7 @@ end
 function dict.clone(tbl: Dictionary<K, V>): Dictionary<K, V>
 	local copied_tbl = {} :: Dictionary<K, V>
 
-	for i, v in pairs(tbl) do
+	for i, v in tbl do
 		copied_tbl[i] = v
 	end
 
@@ -170,7 +170,7 @@ function dict.concat_key(tbl: Dictionary<K, V>, sep: string, i: number, j: numbe
 	local increment: number = 1 
 	local concat = {}
 
-	for i, v in pairs(tbl) do
+	for i, v in tbl do
 		print(not finish == nil)
 		if increment ~= start then
 			increment += 1
@@ -202,7 +202,7 @@ function dict.concat_value(tbl: Dictionary<K, V>, sep: string, i: number, j: num
 	local increment: number = 1
 	local concat = {}
 
-	for i, v in pairs(tbl) do
+	for i, v in tbl do
 		print(not finish == nil)
 		if increment ~= start then
 			increment += 1
@@ -245,7 +245,7 @@ function dict.maxn(tbl: table): number
 	local Highest_Number: number? = nil
 
 
-	for i, v in pairs(tbl) do
+	for i, v in tbl do
 		if type(v) == "number" then
 			if Highest_Number == nil or Highest_Number < v then
 				Highest_Number = v
@@ -260,7 +260,7 @@ function dict.min(tbl: table): number
 	local Lowest_Number: number? = nil
 
 
-	for i, v in pairs(tbl) do
+	for i, v in tbl do
 		if type(v) == "number" then
 			if Lowest_Number == nil or Lowest_Number > v then
 				Lowest_Number = v
@@ -272,7 +272,7 @@ function dict.min(tbl: table): number
 end
 
 function dict.move(src: Dictionary<K, V>, keys: table, dst: Dictionary<K, V>): Dictionary<K, V>
-	for i, v in pairs(src) do
+	for i, v in src do
 		if dict.find(keys,i) then
 			dst[i] = v
 		end
@@ -280,7 +280,7 @@ function dict.move(src: Dictionary<K, V>, keys: table, dst: Dictionary<K, V>): D
 end
 
 function dict.reconcile(src: Dictionary<K, V>, defaults: Dictionary<K, V>): Dictionary<K, V>
-	for k, v in pairs(defaults) do
+	for k, v in defaults do
 		if src[k] == nil then
 			t[k] = v
 		end
@@ -311,7 +311,7 @@ end
 
 function dict.filter<K, V>(tbl: Dictionary<K, V>, fn: FilterFunc<K, V> ): Dictionary<K,V>
 	local result = {} :: Dictionary<K, V>
-	for k, v in pairs(tbl) do
+	for k, v in tbl do
 		if fn(k, v) then
 			result[k] = v
 		end
@@ -321,7 +321,7 @@ end
 
 function dict.map<K, V, R>(tbl: Dictionary<K, V>, fn: Func<K, V, R>): Dictionary<K, R>
 	local result = {} :: Dictionary<K, V>
-	for k, v in pairs(tbl) do
+	for k, v in tbl do
 		result[k] = fn(k, v)
 	end
 	return result
@@ -329,7 +329,7 @@ end
 
 function dict.mapKeys(tbl: Dictionary<K, V>, fn: Func<K, V, R>): Dictionary<K, R>
 	local result = {} :: Dictionary<K, V>
-	for k,v in pairs(tbl) do
+	for k,v in tbl do
 		result[fn(k)] = v
 	end
 	return result
@@ -337,7 +337,7 @@ end
 
 function dict.filterKeys(tbl: Dictionary<K, V>, fn: FilterFunc<K, V>): Dictionary<K, V>
 	local result = {} :: Dictionary<K, V>
-	for k,v in pairs(tbl) do
+	for k,v in tbl do
 		if fn(k) then 
 			result[k] = v 
 		end
@@ -351,7 +351,7 @@ function dict.isWeak(tbl: Dictionary<K, V>): any
 end
 
 function dict.reverse(tbl: Dictionary<K, V>): Dictionary<K, V>
-	for i, v in pairs(tbl) do
+	for i, v in tbl do
 		local p_v = v
 		local p_i = i
 
