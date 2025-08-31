@@ -1,5 +1,5 @@
 local dict = {}
-local hash: string = "27%Ry*330!__@)*($*8152"
+local frozenDicts = setmetatable({}, { __mode = "k"})
 
 -- TYPES
 type Dictionary<K, V> = {[K]: V}
@@ -58,55 +58,65 @@ map, map_key, filter_key, isWeak, weak, reverse, difference, slice, rawset
 --[[
 EXAMPLE CODE
 
-local Dictionary = require(game.ReplicatedStorage.Shared.Dictionary)
+local dict = require(script.Dictionary)
 
-local Data_Template = 
-{
-    Rank = "Alpha",
-    Level = 19,
-    Age = 17,
-    Name = 'Sera Williams',
-    EXP = 900,
-    Coins = 200,
+local Data = {
+	["Hello_World_1"] = 1,
+	["Hello_World_2"] = 2,
+	["Hello_World_3"] = 3,
+	["Hello_World_4"] = 4,
+	["Hello_World_5"] = 5,
+	["Hello_World_6"] = 6,
+	["Hello_World_7"] = 7,
+	["Hello_World_8"] = 8,
 }
 
-local Data = Dictionary.bind(Data_Template) -- we are binding the table to data!! it will not affect the original.
+dict.bind(Data)
 
-Data.Changed:Connect(function(key, value) -- connect the change to a function..
-    print(key, value) -- do whatever with the parameters it passed on
+Data.Changed:Connect(function(k,v)
+	print(k,v)
 end)
 
-Data["Rank"] = "Beta" -- due to roblox being kinda weird, it will not automatically give you the dictionary info or whatever so..
+print(Data)
+
+Data.Hello_World_1 = 10
 
 VERY SORRY INTELLISENSE USERS!!
 
 ]]
 
+
+
 function dict.bind(tbl: Dictionary<K, V>?, weakMode: "k"|"v"|"kv"?): Dictionary<K, V>
 	local raw = tbl or {} :: Dictionary<K, V>
-	local proxy = {}
-	raw[proxy] = raw
+	
+	local internal = {}
+	for k, v in pairs(raw) do
+		internal[k] = v
+		raw[k] = nil
+	end
+
 	local mt = {
 		__index = function(_, key: K)
 			if key == 'Changed' then
-				if not raw._ChangedSignal then
-					raw._ChangedSignal = signal.new()
+				if not internal._ChangedSignal then
+					internal._ChangedSignal = signal.new()
 				end
-				return raw._ChangedSignal
+				return internal._ChangedSignal
 			elseif key == 'rawset' then
 				return function(_, k, v)
-					rawset(raw, k, v)
+					rawset(internal, k, v)
 				end
 			end
-			return raw[key]
+			return internal[key]
 		end,
 		__newindex = function(_, key: K, value: V)
-			if raw[hash] then
+			if frozenDicts[raw] then
 				error("frozen dictionary",2)
 			end
-			raw[key] = value
-			if raw._ChangedSignal then
-				raw._ChangedSignal:Fire(key, value)
+			internal[key] = value
+			if internal._ChangedSignal then
+				internal._ChangedSignal:Fire(key, value)
 			end
 		end,
 	}
@@ -115,8 +125,8 @@ function dict.bind(tbl: Dictionary<K, V>?, weakMode: "k"|"v"|"kv"?): Dictionary<
 		mt.__mode = weakMode
 	end
 
-	setmetatable(proxy, mt)
-	return proxy :: Dictionary<K, V>
+	setmetatable(raw, mt)
+	return raw :: Dictionary<K, V>
 end
 
 function dict.find(tbl: Dictionary<K, V>, v:any, key_check: string): string
@@ -282,11 +292,11 @@ function dict.remove(tbl: Dictionary<K, V>, key: string)
 end
 
 function dict.freeze(tbl: Dictionary<K, V>)
-	tbl[hash] = true
+	frozenDicts[tbl] = true
 end
 
 function dict.unfreeze(tbl: Dictionary<K, V>)
-	tbl[hash] = nil
+	frozenDicts[tbl] = false
 end
 
 function dict.len(tbl: Dictionary<K, V>): number
