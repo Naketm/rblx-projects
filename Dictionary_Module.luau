@@ -144,10 +144,11 @@ end
 function dict.processParallel(tbl, fnString, operation, n)
 	local slices = dict.slice(tbl, n)
 	local shared_results = SharedTable.new()
+	local actors = {}
+	local chunks = {}
 	local completed = 0
 
 	for i, slice in slices do
-		local chunk = UndoSlice(slice)
 
 		local actor = Instance.new("Actor")
 		actor.Name = "Dictionary_Actor_" .. i
@@ -159,8 +160,13 @@ function dict.processParallel(tbl, fnString, operation, n)
 		worker.Enabled = true
 		worker:SetAttribute("Operation", operation)
 
-		task.wait() -- let worker initialize
-
+		table.insert(actors, actor)
+	end
+	
+	task.wait()
+	
+	for i, actor in actors do
+		local chunk = UndoSlice(slices[i])
 		actor:SendMessage("Work", chunk, fnString, i, shared_results)
 	end
 
