@@ -1,6 +1,9 @@
 local dict = {}
 local frozenDicts = setmetatable({}, { __mode = "k"})
 
+-- SERVICES
+local RunService = game:GetService("RunService")
+
 -- TYPES
 type Dictionary<K, V> = {[K]: V}
 type Func<K, V, R> = (K, V) -> R
@@ -52,7 +55,10 @@ end
 --[[
 i have binding, find, merge, clear, clone, concat_key, concat_value, create, 
 maxn, insert, min, move, reconcile, remove, freeze, unfreeze, len, filter, 
-map, map_key, filter_key, isWeak, weak, reverse, difference, slice, rawset
+map, map_key, filter_key, isWeak, weak, reverse, difference, slice, rawset,
+mapParallel, filterParallel
+
+You must input the function as a string for both mapParallel and filterParallel as they use loadstring
 ]]
 
 --[[
@@ -85,38 +91,126 @@ VERY SORRY INTELLISENSE USERS!!
 
 ]]
 
+--[[
 
+You must use double brackets to input functions as they must be represented as a string. 
+
+local dict = require(script.Dictionary)
+local data = {}
+
+for i = 1, 10000 do
+	data["Player" .. i] = {
+		level = math.random(1, 100),
+		coins = math.random(100, 10000),
+		score = math.random(1000, 50000)
+	}
+end
+
+local EvenPlayers = dict.filterParallel(data, 
+	function(name, pdata)
+		return pdata.level % 2 == 0
+	end
+, 4)
+
+local squared_players = dict.mapParallel(data,
+	function(name, pdata)
+		return {
+			pdata.level ^ 2,
+			pdata.coins,
+			pdata.score
+		}
+	end
+, 4)
+
+print(EvenPlayers)
+print(squared_players)
+
+]]
+
+local WorkerTemplate = script.DictionaryWorker
+
+local function UndoSlice(slice: {{any}}): Dictionary<any, any>
+	local dict = {}
+	for _, pair in slice do
+		local key, value = pair[1], pair[2]
+		if key ~= nil and value ~= nil then
+			dict[key] = value
+		end
+	end
+	
+	return dict
+end
+
+function dict.processParallel(tbl, fnString, operation, n)
+	local slices = dict.slice(tbl, n)
+	local shared_results = SharedTable.new()
+	local completed = 0
+
+	for i, slice in ipairs(slices) do
+		local chunk = UndoSlice(slice)
+
+		local actor = Instance.new("Actor")
+		actor.Name = "Dictionary_Actor_" .. i
+		actor.Parent = script
+
+		local worker = WorkerTemplate:Clone()
+		worker.Name = "Worker_" .. i
+		worker.Parent = actor
+		worker.Enabled = true
+		worker:SetAttribute("Operation", operation)
+
+		task.wait() -- let worker initialize
+
+		actor:SendMessage("Work", chunk, fnString, i, shared_results)
+	end
+
+	repeat task.wait() until dict.len(shared_results) == #slices
+
+	local results = {}
+	
+	for sliceIndex, slice_result in shared_results do
+		for k, v in slice_result do
+			results[k] = v
+		end
+	end
+	
+	print("All slices completed. Merged results count:", dict.len(results))
+	return results
+end
+
+function dict.mapParallel(tbl: Dictionary<any, any>, fn: string, n: number?)
+	return dict.processParallel(tbl, fn, "map", n or math.min(#tbl, 8))
+end
+
+function dict.filterParallel(tbl: Dictionary<any, any>, fn: string, n: number?)
+	return dict.processParallel(tbl, fn, "filter", n or math.min(#tbl, 8))
+end
 
 function dict.bind(tbl: Dictionary<K, V>?, weakMode: "k"|"v"|"kv"?): Dictionary<K, V>
 	local raw = tbl or {} :: Dictionary<K, V>
-	
-	local internal = {}
-	for k, v in pairs(raw) do
-		internal[k] = v
-		raw[k] = nil
-	end
 
 	local mt = {
-		__index = function(_, key: K)
+		__index = function(self, key: K)
 			if key == 'Changed' then
-				if not internal._ChangedSignal then
-					internal._ChangedSignal = signal.new()
+				if not rawget(self, '_ChangedSignal') then
+					rawset(self, '_ChangedSignal', signal.new())
 				end
-				return internal._ChangedSignal
+				return rawget(self, '_ChangedSignal')
 			elseif key == 'rawset' then
 				return function(_, k, v)
-					rawset(internal, k, v)
+					rawset(self, k, v)
 				end
 			end
-			return internal[key]
+			return rawget(self, key)
 		end,
-		__newindex = function(_, key: K, value: V)
-			if frozenDicts[raw] then
-				error("frozen dictionary",2)
+		__newindex = function(self, key: K, value: V)
+			if frozenDicts[self] then
+				error("frozen dictionary", 2)
 			end
-			internal[key] = value
-			if internal._ChangedSignal then
-				internal._ChangedSignal:Fire(key, value)
+			rawset(self, key, value)
+			local changedSignal = rawget(self, '_ChangedSignal')
+			if changedSignal then
+				changedSignal:Fire(key, value)
 			end
 		end,
 	}
@@ -142,13 +236,13 @@ function dict.find(tbl: Dictionary<K, V>, v:any, key_check: string): string
 end
 
 function dict.merge(merge_table_1: Dictionary<K, V>, merge_table_2: Dictionary<K, V>): Dictionary<K, V>
-	for i, v in merge_table_2 do
+	for i, v in pairs(merge_table_2) do
 		merge_table_1[i]  = v
 	end
 end
 
 function dict.clear(tbl: Dictionary<K, V>): ()
-	for i,v in tbl do
+	for i,v in pairs(tbl) do
 		v = nil
 	end
 end
@@ -156,7 +250,7 @@ end
 function dict.clone(tbl: Dictionary<K, V>): Dictionary<K, V>
 	local copied_tbl = {} :: Dictionary<K, V>
 
-	for i, v in tbl do
+	for i, v in pairs(tbl) do
 		copied_tbl[i] = v
 	end
 
@@ -170,7 +264,7 @@ function dict.concat_key(tbl: Dictionary<K, V>, sep: string, i: number, j: numbe
 	local increment: number = 1 
 	local concat = {}
 
-	for i, v in tbl do
+	for i, v in pairs(tbl) do
 		print(not finish == nil)
 		if increment ~= start then
 			increment += 1
@@ -202,7 +296,7 @@ function dict.concat_value(tbl: Dictionary<K, V>, sep: string, i: number, j: num
 	local increment: number = 1
 	local concat = {}
 
-	for i, v in tbl do
+	for i, v in pairs(tbl) do
 		print(not finish == nil)
 		if increment ~= start then
 			increment += 1
@@ -245,7 +339,7 @@ function dict.maxn(tbl: table): number
 	local Highest_Number: number? = nil
 
 
-	for i, v in tbl do
+	for i, v in pairs(tbl) do
 		if type(v) == "number" then
 			if Highest_Number == nil or Highest_Number < v then
 				Highest_Number = v
@@ -260,7 +354,7 @@ function dict.min(tbl: table): number
 	local Lowest_Number: number? = nil
 
 
-	for i, v in tbl do
+	for i, v in pairs(tbl) do
 		if type(v) == "number" then
 			if Lowest_Number == nil or Lowest_Number > v then
 				Lowest_Number = v
@@ -272,7 +366,7 @@ function dict.min(tbl: table): number
 end
 
 function dict.move(src: Dictionary<K, V>, keys: table, dst: Dictionary<K, V>): Dictionary<K, V>
-	for i, v in src do
+	for i, v in pairs(src) do
 		if dict.find(keys,i) then
 			dst[i] = v
 		end
@@ -280,7 +374,7 @@ function dict.move(src: Dictionary<K, V>, keys: table, dst: Dictionary<K, V>): D
 end
 
 function dict.reconcile(src: Dictionary<K, V>, defaults: Dictionary<K, V>): Dictionary<K, V>
-	for k, v in defaults do
+	for k, v in pairs(defaults) do
 		if src[k] == nil then
 			t[k] = v
 		end
@@ -299,19 +393,25 @@ function dict.unfreeze(tbl: Dictionary<K, V>)
 	frozenDicts[tbl] = false
 end
 
-function dict.len(tbl: Dictionary<K, V>): number
-	local index = 0
-
-	for _ in pairs(tbl) do
-		index += 1
+function dict.len(tbl: Dictionary<K, V>): number?
+	function dict.len(tbl)
+		if typeof(tbl) == "table" then
+			local increment = 0
+			
+			for _ in pairs(tbl) do 
+				increment += 1 
+			end
+			
+			return increment
+		elseif typeof(tbl) == "SharedTable" then
+			return SharedTable.size(tbl)
+		end
 	end
-
-	return index
 end
 
 function dict.filter<K, V>(tbl: Dictionary<K, V>, fn: FilterFunc<K, V> ): Dictionary<K,V>
 	local result = {} :: Dictionary<K, V>
-	for k, v in tbl do
+	for k, v in pairs(tbl) do
 		if fn(k, v) then
 			result[k] = v
 		end
@@ -321,7 +421,7 @@ end
 
 function dict.map<K, V, R>(tbl: Dictionary<K, V>, fn: Func<K, V, R>): Dictionary<K, R>
 	local result = {} :: Dictionary<K, V>
-	for k, v in tbl do
+	for k, v in pairs(tbl) do
 		result[k] = fn(k, v)
 	end
 	return result
@@ -329,7 +429,7 @@ end
 
 function dict.mapKeys(tbl: Dictionary<K, V>, fn: Func<K, V, R>): Dictionary<K, R>
 	local result = {} :: Dictionary<K, V>
-	for k,v in tbl do
+	for k,v in pairs(tbl) do
 		result[fn(k)] = v
 	end
 	return result
@@ -337,7 +437,7 @@ end
 
 function dict.filterKeys(tbl: Dictionary<K, V>, fn: FilterFunc<K, V>): Dictionary<K, V>
 	local result = {} :: Dictionary<K, V>
-	for k,v in tbl do
+	for k,v in pairs(tbl) do
 		if fn(k) then 
 			result[k] = v 
 		end
@@ -351,7 +451,7 @@ function dict.isWeak(tbl: Dictionary<K, V>): any
 end
 
 function dict.reverse(tbl: Dictionary<K, V>): Dictionary<K, V>
-	for i, v in tbl do
+	for i, v in pairs(tbl) do
 		local p_v = v
 		local p_i = i
 
@@ -375,9 +475,12 @@ function dict.difference(tbl: Dictionary<K, V>, tbl2: Dictionary<K, V>): Diction
 	return result
 end
 
-function dict.slice(tbl: Dictionary<K, V>, n: number): {{any}}
-	assert(n >= 1, "N must be over 1")
-	local slices = table.create(n)
+function dict.slice(tbl: Dictionary<K, V>, actor_count: number): {{any}}
+	assert(actor_count >= 1, "Actor count must be over 1")
+	local slices = {}
+	for j = 1, actor_count do
+		slices[j] = {}
+	end
 
 	local i = 1
 	for k, v in tbl do
@@ -385,10 +488,11 @@ function dict.slice(tbl: Dictionary<K, V>, n: number): {{any}}
 		chunk[#chunk+1] = {k, v}
 
 		i += 1
-		if i > n then 
+		if i > actor_count then 
 			i = 1 
 		end
 	end
+
 	return slices
 end
 
