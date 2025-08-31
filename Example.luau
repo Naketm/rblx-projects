@@ -4,7 +4,7 @@
 
 local Dictionary = require(script.Dictionary)
 
-local Data_Template = 
+local Data = 
 	{
 		Rank = "Alpha",
 		Level = 19,
@@ -14,7 +14,7 @@ local Data_Template =
 		Coins = 200,
 	}
 
-local Data = Dictionary.bind(Data_Template)
+Dictionary.bind(Data)
 
 local isFirstChange: boolean = true
 
