@@ -1,13 +1,91 @@
+local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local dict = {}
 local hash: string = "27%Ry*330!__@)*($*8152"
-type Dictionary<K, V> = {[K]: V}
 
-function dict.bind(tbl: Dictionary<K, V>?): Dictionary<K, V>
+-- CLASSES
+local signal = {}
+signal.__index = signal
+
+function signal.new()
+    return setmetatable({_connections = {}}, signal)
+end
+
+function signal:Connect(fn)
+    table.insert(self._connections, fn)
+    return {
+        Disconnect = function()
+            for i, v in ipairs(self._connections) do
+                if v == fn then
+                    table.remove(self._connections, i)
+                end
+            end
+        end
+    }
+end
+
+function signal:Fire(...)
+    for _, fn in ipairs(self._connections) do
+        fn(...)
+    end
+end
+
+-- TYPES
+type Dictionary<K, V> = {[K]: V}
+type MapFunc<K, V, R> = (K, V) -> R
+type FilterFunc<K, V> = (K, V) -> boolean
+
+-- DOCUMENTATION
+-- MADE BY [NAKETM] on discord or [jax0518] on roblox!!
+-- Contact if any issues
+
+-- Binding will attach the module to your dictionary, basically super-powering it!
+
+-- weakMode has three statements, key, value and key & value. 
+-- This applies robloxs weak table to it and allows it to be automatically cleaned up next GC to avoid memory leaks
+-- IT WILL ONLY CLEAN UP WHAT YOU TELL IT TO CLEAN UP!! setting it to [K] will apply weak to only the keys.
+
+-- You are able to get onChanged signals to detect when the Dictionary has been changed, 
+-- It will return the key and the value being changed!
+
+--[[
+EXAMPLE CODE
+
+local Dictionary = require(game.ReplicatedStorage.Shared.Dictionary)
+
+local Data_Template = 
+{
+    Rank = "Alpha",
+    Level = 19,
+    Age = 17,
+    Name = 'Sera Williams',
+    EXP = 900,
+    Coins = 200,
+}
+
+local Data = Dictionary.bind(Data_Template) -- we are binding the table to data!! it will not affect the original.
+
+Data.Changed:Connect(function(key, value) -- connect the change to a function..
+    print(key, value) -- do whatever with the parameters it passed on
+end)
+
+Data["Rank"] = "Beta" -- due to roblox being kinda weird, it will not automatically give you the dictionary info or whatever so..
+
+VERY SORRY INTELLISENSE USERS!!
+
+]]
+
+function dict.bind(tbl: Dictionary<K, V>?, weakMode: "k"|"v"|"kv"?): Dictionary<K, V>
     local raw = tbl or {} :: Dictionary<K, V>
     local proxy = {}
     raw[proxy] = raw
     local mt = {
         __index = function(_, key: K)
+            if key == 'Changed' then
+                if not raw._ChangedSignal then
+                    raw._ChangedSignal = signal.new()
+                end
+                return raw._ChangedSignal
+            end
             return raw[key]
         end,
         __newindex = function(_, key: K, value: V)
@@ -15,8 +93,16 @@ function dict.bind(tbl: Dictionary<K, V>?): Dictionary<K, V>
                 error("frozen dictionary",2)
             end
             raw[key] = value
+            if raw._ChangedSignal then
+                raw._ChangedSignal:Fire(key, value)
+            end
         end,
     }
+
+    if weakMode then
+        mt.__mode = weakMode
+    end
+
     setmetatable(proxy, mt)
     return proxy :: Dictionary<K, V>
 end
@@ -189,6 +275,68 @@ end
 
 function dict.unfreeze(tbl: Dictionary<K, V>)
     tbl[hash] = nil
+end
+
+function dict.len(tbl: Dictionary<K, V>): number
+    local index = 0
+
+    for _ in pairs(tbl) do
+        index += 1
+    end
+
+    return index
+end
+
+function dict.filter<K, V>(tbl: Dictionary<K, V>, fn: FilterFunc<K, V> ): Dictionary<K,V>
+    local result = {} :: Dictionary<K, V>
+    for k, v in pairs(tbl) do
+        if fn(k, v) then
+            result[k] = v
+        end
+    end
+    return result
+end
+
+function dict.map<K, V, R>(tbl: Dictionary<K, V>, fn: MapFunc<K, V, R>): Dictionary<K, R>
+    local result = {} :: Dictionary<K, V>
+    for k, v in pairs(tbl) do
+        result[k] = fn(k, v)
+    end
+    return result
+end
+
+function dict.mapKeys(tbl: Dictionary<K, V>, fn: MapFunc<K, V, R>): Dictionary<K, R>
+    local result = {} :: Dictionary<K, V>
+    for k,v in pairs(tbl) do
+        result[fn(k)] = v
+    end
+    return result
+end
+
+function dict.filterKeys(tbl: Dictionary<K, V>, fn: FilterFunc<K, V>): Dictionary<K, V>
+    local result = {} :: Dictionary<K, V>
+    for k,v in pairs(tbl) do
+        if fn(k) then 
+            result[k] = v 
+        end
+    end
+    return result
+end
+
+function dict.isWeak(tbl: Dictionary<K, V>): any
+    local mt = getmetatable(tbl)
+    return mt and mt.__mode or false
+end
+
+function dict.reverse(tbl: Dictionary<K, V>): Dictionary<K, V>
+    for i, v in pairs(tbl) do
+        local p_v = v
+        local p_i = i
+
+        tbl[i] = nil
+        
+        tbl[p_v] = p_i
+    end
 end
 
 return dict
