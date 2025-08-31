@@ -26,4 +26,4 @@ Data.Changed:Connect(function(key, value)
 end)
 
 Data["Level"] = 10
-print(Data["Level"])
+print(Data["Level"]) -- will return 20
