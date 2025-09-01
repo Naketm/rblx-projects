@@ -21,7 +21,7 @@ function signal:Connect(fn)
 	table.insert(self._connections, fn)
 	return {
 		Disconnect = function()
-			for i, v in ipairs(self._connections) do
+			for i, v in self._connections do
 				if v == fn then
 					table.remove(self._connections, i)
 				end
@@ -31,7 +31,7 @@ function signal:Connect(fn)
 end
 
 function signal:Fire(...)
-	for _, fn in ipairs(self._connections) do
+	for _, fn in self._connections do
 		fn(...)
 	end
 end
