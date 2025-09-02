@@ -175,6 +175,7 @@ function dict.processParallel(tbl, fnString, operation, n)
 	local results = {}
 	
 	for sliceIndex, slice_result in shared_results do
+		actors[sliceIndex]:Destroy()
 		for k, v in slice_result do
 			results[k] = v
 		end
