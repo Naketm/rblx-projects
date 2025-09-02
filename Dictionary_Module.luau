@@ -141,7 +141,7 @@ local function UndoSlice(slice: {{any}}): Dictionary<any, any>
 	return dict
 end
 
-function dict.processParallel(tbl, fnString, operation, n)
+function dict.processParallel(tbl: Dictionary<K, V>, fnString: string, operation: string, n: number)
 	local slices = dict.slice(tbl, n)
 	local shared_results = SharedTable.new()
 	local actors = {}
