@@ -1,22 +1,22 @@
 local actor = script.Parent
-local op = script:GetAttribute("Operation") or "filter"
+local operation = script:GetAttribute("Operation") or "filter"
 
 actor:BindToMessageParallel("Work", function(chunk, fnSource, SliceIndex, SharedResults)
-	local ok, f = pcall(function() return loadstring("return "..fnSource)() end)
-	if not ok or type(f) ~= "function" then
-		warn("Loadstring failed", ok, tostring(f))
+	local success, err = pcall(function() return loadstring("return "..fnSource)() end)
+	if not success or type(err) ~= "function" then
+		warn("Loadstring failed", success, tostring(err))
 		SharedResults[SliceIndex] = {}
 		return
 	end
 
 	local output = {}
-	if op == "map" then
+	if operation == "map" then
 		for k, v in chunk do
-			output[k] = f(k, v)
+			output[k] = err(k, v)
 		end
 	else
 		for k, v in chunk do
-			if f(k, v) then
+			if err(k, v) then
 				output[k] = v
 			end
 		end
